@@ -4,7 +4,7 @@ const dotenv = require('dotenv').config();
 const ejs = require('ejs');
 const mongoose = require('mongoose');
 const lodash = require('lodash');
-const encrypt = require('mongoose-encryption');
+const md5 = require('md5');
 
 const app = express();
 app.set('view engine', 'ejs');
@@ -27,14 +27,6 @@ const user_schema = new mongoose.Schema({
     password: String
 });
 
-// Middleware for hashing
-const encryption_key = process.env.ENCRYPTION_KEY
-const signing_key = process.env.SIGNING_KEY
-
-// This adds _ct and _ac fields to the schema, as well as pre 'init' and pre 'save' middleware,
-// and encrypt, decrypt, sign, and authenticate instance methods
-user_schema.plugin(encrypt, {encryptionKey: encryption_key, signingKey: signing_key, encryptedFields: ['password']});  
-
 const User = new mongoose.model('User', user_schema);
 
 let user_notification = "";
@@ -50,18 +42,11 @@ app.route('/login')
         });
     })
     .post(function(req, res) {
-        // User.findOne({email: req.body.username, password: req.body.password}, function(err, found_user) {  // Won't work after adding encryption
-        User.findOne({email: req.body.username}, function(err, found_user) {
+        User.findOne({email: req.body.username, password: md5(req.body.password)}, function(err, found_user) {  
             if (found_user != null) {
-                if (found_user.password === req.body.password) {
-                    res.render('secrets', {
-                        user_email: found_user.email
-                    });
-                } else {
-                    res.render('login', {
-                        user_notification: "Sorry, wrong username or password.  Try again."
-                    });    
-                }
+                res.render('secrets', {
+                    user_email: found_user.email
+                });
             } else {
                 res.render('login', {
                     user_notification: "Sorry, wrong username or password.  Try again."
@@ -77,7 +62,7 @@ app.route('/register')
     .post(function(req, res) {
         const new_user = new User({
             email: req.body.username,
-            password: req.body.password
+            password: md5(req.body.password)
         });
         new_user.save(function(err) {
             if (err) {
