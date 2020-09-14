@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+
+<div class="container mt-5">
+    <h1>Login</h1>
+    <div class="row">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="notification"><%= user_notification %></h2>
+                <form action="/login" method="post">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input class="form-control" type="email" name="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input class="form-control" type="password" name="password">
+                    </div>
+                    <button class="btn btn-dark" type="submit">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <a class="btn btn-block" href="/auth/google" role="button">
+                <span class="fab fa-google"></span>
+                Sign In with Google
+            </a>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
