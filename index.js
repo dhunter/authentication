@@ -4,13 +4,15 @@ const dotenv = require('dotenv').config();
 const ejs = require('ejs');
 const mongoose = require('mongoose');
 const lodash = require('lodash');
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
 
+// Express
 const app = express();
 app.set('view engine', 'ejs');
 app.use(body_parser.urlencoded({extended: true}));
 app.use(express.static(__dirname + '/public'));
 
+// Mongoose
 let deprecation_warning_items = {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -19,8 +21,11 @@ let deprecation_warning_items = {
 // Dev
 mongoose.connect(process.env.MONGODB_DEV, deprecation_warning_items);
 
-// Force Mongoose to use MongoDB's findOneAndUpdate() function.
+// Mongoose - Force Mongoose to use MongoDB's findOneAndUpdate() function.
 mongoose.set('useFindAndModify', false);
+
+// Bcrypt - Number of salt rounds to use.
+const salt_rounds = 10;
 
 const user_schema = new mongoose.Schema({
     email: String,
@@ -42,14 +47,22 @@ app.route('/login')
         });
     })
     .post(function(req, res) {
-        User.findOne({email: req.body.username, password: md5(req.body.password)}, function(err, found_user) {  
+        User.findOne({email: req.body.username}, function(err, found_user) {  
             if (found_user != null) {
-                res.render('secrets', {
-                    user_email: found_user.email
+                bcrypt.compare(req.body.password, found_user.password, function(err, result) {
+                    if (result === true) {
+                        res.render('secrets', {
+                            user_email: found_user.email
+                        });
+                    } else {
+                        res.render('login', {
+                            user_notification: "Sorry, wrong password.  Try again."
+                        });
+                    }
                 });
             } else {
                 res.render('login', {
-                    user_notification: "Sorry, wrong username or password.  Try again."
+                    user_notification: "Sorry, no such user.  Try again."
                 });
             }
         });
@@ -60,18 +73,20 @@ app.route('/register')
         res.render('register');
     })
     .post(function(req, res) {
-        const new_user = new User({
-            email: req.body.username,
-            password: md5(req.body.password)
-        });
-        new_user.save(function(err) {
-            if (err) {
-                console.log(err);
-            } else {
-                res.render('secrets', {
-                    user_email: new_user.email
-                });
-            }
+        bcrypt.hash(req.body.password, salt_rounds, function(err, hash) {
+            const new_user = new User({
+                email: req.body.username,
+                password: hash
+            });
+            new_user.save(function(err) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    res.render('secrets', {
+                        user_email: new_user.email
+                    });
+                }
+            });
         });
     });
 
