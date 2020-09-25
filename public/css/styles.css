@@ -15,7 +15,7 @@
     font-size: 1rem;
 }
 
-.secret-text {
+.secret_text {
     background-color: var(--third_color);
     color: var(--second_color);
     font-size: 2rem;
