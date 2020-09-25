@@ -2,7 +2,7 @@
 
 <div class="container mt-5">
     <h1>Login</h1>
-    <div class="row">
+    <div class="column">
         <div class="card">
             <div class="card-body">
                 <h2 class="notification"><%= user_notification %></h2>
@@ -20,12 +20,14 @@
             </div>
         </div>
     </div>
-    <div class="card">
-        <div class="card-body">
-            <a class="btn btn-block" href="/auth/google" role="button">
-                <span class="fab fa-google"></span>
-                Sign In with Google
-            </a>
+    <div class="column">
+        <div class="card">
+            <div class="card-body">
+                <a class="btn btn-block btn-social btn-google" href="/auth/google" role="button">
+                    <span class="fab fa-google"></span>
+                    Sign In with Google
+                </a>
+            </div>
         </div>
     </div>
 </div>

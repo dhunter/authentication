@@ -7,6 +7,8 @@ const lodash = require('lodash');
 const session = require('express-session');
 const passport = require('passport');
 const passport_local_mongoose = require('passport-local-mongoose');
+const Google_Strategy = require('passport-google-oauth20').Strategy;
+const findOrCreate = require('mongoose-findorcreate');
 
 // Express
 const app = express();
@@ -39,14 +41,34 @@ const salt_rounds = 10;
 
 const user_schema = new mongoose.Schema({
     email: String,
-    password: String
+    password: String,
+    googleId: String
 });
 user_schema.plugin(passport_local_mongoose);
+user_schema.plugin(findOrCreate);
 
 const User = new mongoose.model('User', user_schema);
 passport.use(User.createStrategy());
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.serializeUser(function(user, done) {
+    done(null, user.id);
+});
+passport.deserializeUser(function(id, done) {
+    User.findById(id, function(err, user) {
+        done(err, user);
+    });
+});
+
+passport.use(new Google_Strategy({
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.BASE_URL_DEV + process.env.PORT + '/auth/google/secrets'   // Swap to BASE_URL_PROD when releasing
+    }, 
+    function(accessToken, refreshToken, profile, cb) {
+        User.findOrCreate({ googleId: profile.id }, function (err, user) {
+            return cb(err, user);
+        });
+    }
+));
 
 let user_notification = "";
 
@@ -54,6 +76,17 @@ app.get('/', function(req, res) {
     res.render('home');
 });
 
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile'] })
+);
+
+app.get('/auth/google/secrets', 
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    function(req, res) {
+        res.redirect('/secrets');
+    }
+);
+  
 app.route('/login')
     .get(function(req, res) {
         res.render('login', {
@@ -94,16 +127,15 @@ app.route('/register')
         });
     });
 
-app.route('/secrets')
-    .get(function(req, res) {
-        if(req.isAuthenticated()) {
-            res.render('secrets', {
-                user_email: req.user.username
-            });
-        } else {
-            res.redirect('/login');
-        }
-    });
+app.get('/secrets', function(req, res) {
+    if(req.isAuthenticated()) {
+        res.render('secrets', {
+            user_email: req.user.username
+        });
+    } else {
+        res.redirect('/login');
+    }
+});
 
 app.get('/logout', function(req, res) {
     req.logout();
